@@ -7,6 +7,7 @@ module flowr::track {
     use sui::coin::{Coin, Self};
     use sui::package;
     use sui::display;
+    use flowr::admin::{Admin}
 
     // Errors
     const EInvalidMetadata: u64 = 0;
@@ -124,6 +125,14 @@ module flowr::track {
         let val = balance::value(&track.earnings);
         let coin = coin::take(&mut track.earnings, val, ctx);
         coin
+    }
+
+    public fun change_cover_url(
+        _: &Admin,
+        track: &mut Track,
+        new_url: String
+    ) {
+        track.cover_url = new_url
     }
 
     // Getter functions remain the same
