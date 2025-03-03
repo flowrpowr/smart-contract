@@ -1,34 +1,37 @@
 module flowr::track {
+    use sui::object::{Self, UID, ID};
     use sui::tx_context;
     use std::string::{Self, String};
     use sui::event;
     use sui::balance::{Balance, Self};
-    use sui::sui::SUI;
     use sui::coin::{Coin, Self};
     use sui::package;
     use sui::display;
-    use flowr::admin::{Admin}
+
+    use flowr::admin::{Admin};
+    use flowr::stream::{STREAM};
+
 
     // Errors
-    const EInvalidMetadata: u64 = 0;
     const EUnauthorizedAction: u64 = 1;
     const EPaymentInvalid: u64 = 2;
 
     public struct Track has key, store {
         id: UID,
         title: String,
-        artist: address,
+        artist: String,
+        artist_address: address,
         genre: String,
         publish_date: String,
         stream_count: u64,
-        earnings: Balance<SUI>,
+        earnings: Balance<STREAM>,
         cover_url: String,
     }
 
     public struct TrackCreated has copy, drop {
         track_id: ID,
         title: String,
-        artist: address
+        artist_address: address
     }
 
     public struct TrackStreamed has copy, drop {
@@ -72,22 +75,24 @@ module flowr::track {
 
     public fun create_track(
         title: String,
-        artist: address,
+        artist: String,
+        artist_address: address,
         genre: String,
         publish_date: String,
         cover_url: String,
         ctx: &mut TxContext
-    ): ID {
+    ) {
         
         
         let track = Track {
             id: object::new(ctx),
             title,
             artist,
+            artist_address,
             genre,
             publish_date,
             stream_count: 0,
-            earnings: balance::zero<SUI>(),
+            earnings: balance::zero<STREAM>(),
             cover_url,
         };
 
@@ -96,18 +101,20 @@ module flowr::track {
         event::emit(TrackCreated {
             track_id,
             title,
-            artist
+            artist_address
         });
 
         transfer::share_object(track);
-        track_id
     }
 
     // Rest of the functions remain the same...
     public fun stream_track(
         track: &mut Track,
+        payment: Coin<STREAM>,
         ctx: &mut TxContext
     ) {
+        assert!(coin::value(&payment) == 1, EPaymentInvalid);
+        coin::put(&mut track.earnings, payment);
         track.stream_count = track.stream_count + 1; 
 
         event::emit(TrackStreamed{
@@ -120,8 +127,8 @@ module flowr::track {
     public fun withdraw_earnings(
         track: &mut Track,
         ctx: &mut TxContext
-    ): Coin<SUI> {
-        assert!(track.artist == tx_context::sender(ctx), EUnauthorizedAction);
+    ): Coin<STREAM> {
+        assert!(track.artist_address == tx_context::sender(ctx), EUnauthorizedAction);
         let val = balance::value(&track.earnings);
         let coin = coin::take(&mut track.earnings, val, ctx);
         coin
@@ -134,8 +141,4 @@ module flowr::track {
     ) {
         track.cover_url = new_url
     }
-
-    // Getter functions remain the same
-    public fun get_title(track: &Track): String { track.title }
-    public fun get_artist(track: &Track): address { track.artist }
 }
