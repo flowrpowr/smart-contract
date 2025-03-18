@@ -18,6 +18,9 @@ module flowr::track {
 
     public struct Track has key, store {
         id: UID,
+        release_type: String,
+        release_title: String,
+        track_number: u8,
         title: String,
         artist: String,
         artist_address: address,
@@ -31,6 +34,7 @@ module flowr::track {
     public struct TrackCreated has copy, drop {
         track_id: ID,
         title: String,
+        track_number: u8,
         artist_address: address
     }
 
@@ -55,7 +59,7 @@ module flowr::track {
         let values = vector[
             string::utf8(b"{title}"),
             string::utf8(b"{cover_url}"),
-            string::utf8(b"Track by {artist}"),
+            string::utf8(b"{title}"),
             string::utf8(b"{artist}")
         ];
 
@@ -74,6 +78,9 @@ module flowr::track {
     }
 
     public fun create_track(
+        release_type: String,
+        release_title: String,
+        track_number: u8,
         title: String,
         artist: String,
         artist_address: address,
@@ -86,6 +93,9 @@ module flowr::track {
         
         let track = Track {
             id: object::new(ctx),
+            release_type,
+            release_title,
+            track_number,
             title,
             artist,
             artist_address,
@@ -101,6 +111,7 @@ module flowr::track {
         event::emit(TrackCreated {
             track_id,
             title,
+            track_number,
             artist_address
         });
 
